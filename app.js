@@ -1,22 +1,44 @@
 // App State
 const state = {
-    currentSource: 'vnexpress',
+    currentSource: 'dantri',
     articles: [],
     currentArticle: null
 };
 
 // RSS Feed URLs (using RSS to JSON converters)
 const RSS_FEEDS = {
+    // Tiếng Việt - Full content
+    dantri: 'https://dantri.com.vn/rss/trang-chu.rss',
+    bbc_vietnamese: 'https://www.bbc.com/vietnamese/index.xml',
+    voa_vietnamese: 'https://www.voatiengviet.com/api/zgt$peqvi',
+    
+    // Tiếng Anh - Full content
+    bbc: 'https://feeds.bbci.co.uk/news/rss.xml',
+    cnn: 'http://rss.cnn.com/rss/edition_world.rss',
+    nytimes: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
+    techcrunch: 'https://techcrunch.com/feed/',
+    hackernews: 'https://hnrss.org/frontpage',
+    
+    // Thêm các nguồn khác có full content
     vnexpress: 'https://vnexpress.net/rss/tin-moi-nhat.rss',
-    tuoitre: 'https://tuoitre.vn/rss/tin-moi-nhat.rss',
-    thanhnien: 'https://thanhnien.vn/rss/home.rss'
+    tuoitre: 'https://tuoitre.vn/rss/tin-moi-nhat.rss'
 };
 
 // Source names
 const SOURCE_NAMES = {
+    // Tiếng Việt
+    dantri: 'Dân Trí',
+    bbc_vietnamese: 'BBC Tiếng Việt',
+    voa_vietnamese: 'VOA Tiếng Việt',
     vnexpress: 'VnExpress',
     tuoitre: 'Tuổi Trẻ',
-    thanhnien: 'Thanh Niên'
+    
+    // Tiếng Anh
+    bbc: 'BBC News',
+    cnn: 'CNN',
+    nytimes: 'NY Times',
+    techcrunch: 'TechCrunch',
+    hackernews: 'Hacker News'
 };
 
 // DOM Elements
@@ -148,106 +170,14 @@ function createNewsItem(article, index) {
     return div;
 }
 
-// Fetch full article content using a CORS proxy
-async function fetchFullArticle(url, source) {
-    // Use AllOrigins CORS proxy to fetch the full page
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-    
-    const response = await fetch(proxyUrl);
-    
-    if (!response.ok) {
-        throw new Error('Failed to fetch article');
-    }
-    
-    const html = await response.text();
-    
-    // Parse HTML and extract article content based on source
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    
-    let articleBody = '';
-    
-    // Different selectors for different news sources
-    switch(source) {
-        case 'vnexpress':
-            // VnExpress article content
-            const vnexpressContent = doc.querySelector('.fck_detail') || 
-                                    doc.querySelector('article.fck_detail') ||
-                                    doc.querySelector('.content_detail');
-            if (vnexpressContent) {
-                // Remove images and unwanted elements
-                vnexpressContent.querySelectorAll('img, figure, table.tplCaption, .box_brief_info, .lazier').forEach(el => el.remove());
-                articleBody = vnexpressContent.innerHTML;
-            }
-            break;
-            
-        case 'tuoitre':
-            // Tuoi Tre article content
-            const tuoitreContent = doc.querySelector('#main-detail-body') || 
-                                  doc.querySelector('.detail-content') ||
-                                  doc.querySelector('div[data-role="content"]');
-            if (tuoitreContent) {
-                tuoitreContent.querySelectorAll('img, figure, .VCSortableInPreviewMode, .box-category').forEach(el => el.remove());
-                articleBody = tuoitreContent.innerHTML;
-            }
-            break;
-            
-        case 'thanhnien':
-            // Thanh Nien article content
-            const thanhnienContent = doc.querySelector('#main-detail-body') || 
-                                    doc.querySelector('.detail-content') ||
-                                    doc.querySelector('div[id*="contentbody"]');
-            if (thanhnienContent) {
-                thanhnienContent.querySelectorAll('img, figure, .box-rel-news').forEach(el => el.remove());
-                articleBody = thanhnienContent.innerHTML;
-            }
-            break;
-    }
-    
-    if (!articleBody) {
-        throw new Error('Could not extract article content');
-    }
-    
-    // Clean up the HTML
-    articleBody = cleanArticleHtml(articleBody);
-    
-    return articleBody || '<p>Không thể tải nội dung. Vui lòng xem bài gốc.</p>';
-}
-
-// Clean and format article HTML
-function cleanArticleHtml(html) {
-    // Remove all image tags
-    html = html.replace(/<img[^>]*>/gi, '');
-    html = html.replace(/<figure[^>]*>.*?<\/figure>/gi, '');
-    html = html.replace(/<picture[^>]*>.*?<\/picture>/gi, '');
-    
-    // Remove inline styles
-    html = html.replace(/style="[^"]*"/gi, '');
-    
-    // Remove script and style tags
-    html = html.replace(/<script[^>]*>.*?<\/script>/gi, '');
-    html = html.replace(/<style[^>]*>.*?<\/style>/gi, '');
-    
-    // Remove empty paragraphs
-    html = html.replace(/<p>\s*<\/p>/gi, '');
-    
-    // Remove data attributes
-    html = html.replace(/data-[a-z-]+="[^"]*"/gi, '');
-    
-    // Clean up whitespace
-    html = html.replace(/\s+/g, ' ');
-    
-    return html.trim();
-}
-
 // Open article in modal
-async function openArticle(index) {
+function openArticle(index) {
     const article = state.articles[index];
     state.currentArticle = article;
     
     const timeAgo = getTimeAgo(article.pubDate);
     
-    // Show loading state
+    // Show article content directly from RSS (no scraping)
     articleContent.innerHTML = `
         <div class="article-header">
             <h1 class="article-title">${article.title}</h1>
@@ -257,61 +187,17 @@ async function openArticle(index) {
             </div>
         </div>
         <div class="article-body">
-            <div style="text-align: center; padding: 40px; color: #999;">
-                Đang tải nội dung đầy đủ...
-            </div>
+            ${formatArticleContent(article.content)}
+        </div>
+        <div class="article-link">
+            <a href="${article.link}" target="_blank" rel="noopener noreferrer">
+                📄 Xem bài gốc trên ${SOURCE_NAMES[article.source]}
+            </a>
         </div>
     `;
     
     articleModal.classList.add('show');
     document.body.style.overflow = 'hidden';
-    
-    // Try to fetch full content
-    try {
-        const fullContent = await fetchFullArticle(article.link, article.source);
-        
-        articleContent.innerHTML = `
-            <div class="article-header">
-                <h1 class="article-title">${article.title}</h1>
-                <div class="article-meta">
-                    <span class="article-source">${SOURCE_NAMES[article.source]}</span>
-                    <span class="article-time">${timeAgo}</span>
-                </div>
-            </div>
-            <div class="article-body">
-                ${fullContent}
-            </div>
-            <div class="article-link">
-                <a href="${article.link}" target="_blank" rel="noopener noreferrer">
-                    📄 Xem bài gốc trên ${SOURCE_NAMES[article.source]}
-                </a>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Error fetching full article:', error);
-        
-        // Fallback to RSS content
-        articleContent.innerHTML = `
-            <div class="article-header">
-                <h1 class="article-title">${article.title}</h1>
-                <div class="article-meta">
-                    <span class="article-source">${SOURCE_NAMES[article.source]}</span>
-                    <span class="article-time">${timeAgo}</span>
-                </div>
-            </div>
-            <div class="article-body">
-                ${formatArticleContent(article.content)}
-                <div style="background: #2a2a2a; padding: 15px; border-radius: 6px; margin-top: 20px; border-left: 3px solid #00a8e1;">
-                    ⚠️ Không thể tải toàn bộ nội dung. Vui lòng nhấn vào link bên dưới để xem bài đầy đủ.
-                </div>
-            </div>
-            <div class="article-link">
-                <a href="${article.link}" target="_blank" rel="noopener noreferrer">
-                    📄 Xem bài gốc trên ${SOURCE_NAMES[article.source]}
-                </a>
-            </div>
-        `;
-    }
 }
 
 // Close article modal
