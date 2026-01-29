@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Đọc Báo - BB10</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>📰 Đọc Báo</h1>
+            <button id="refreshBtn" class="btn-refresh">↻ Làm mới</button>
+        </header>
+
+        <!-- Source Selection -->
+        <div class="source-tabs">
+            <button class="tab-btn active" data-source="vnexpress">VnExpress</button>
+            <button class="tab-btn" data-source="tuoitre">Tuổi Trẻ</button>
+            <button class="tab-btn" data-source="thanhnien">Thanh Niên</button>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="loading">Đang tải...</div>
+
+        <!-- News List -->
+        <div id="newsList" class="news-list"></div>
+
+        <!-- Article Detail Modal -->
+        <div id="articleModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button id="closeModal" class="btn-close">← Quay lại</button>
+                </div>
+                <div id="articleContent" class="article-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
